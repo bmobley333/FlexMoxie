@@ -31,7 +31,7 @@ function fGetSubFolder(folderTag, defaultFolderName) {
   try {
     mainFolder = DriveApp.getFolderById(flexFolderId);
   } catch (e) {
-    fShowMessage('❌ Error', 'Could not access the main "💪 My FlexMoxie RPG" folder. It may have been deleted. Please run the setup again to restore it.');
+    fShowMessage('❌ Error', 'Could not access the main "🫀FlexMoxie" folder. It may have been deleted. Please run the setup again to restore it.');
     return null;
   }
 
