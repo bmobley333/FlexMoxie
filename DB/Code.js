@@ -16,8 +16,8 @@ function onOpen() {
     FlexLib.fCreateDesignerMenu('DB');
   } else {
     SpreadsheetApp.getUi()
-      .createMenu('💪 MS3')
-      .addItem('▶️ Activate 💪MS3 Menus', 'fActivateMenus')
+      .createMenu('💪 FlexMoxie')
+      .addItem('▶️ Activate 💪FlexMoxie Menus', 'fActivateMenus')
       .addToUi();
   }
 } // End function onOpen

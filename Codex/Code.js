@@ -23,8 +23,8 @@ function onOpen() {
   } else {
     // If not initialized, show a simple menu to activate the script.
     SpreadsheetApp.getUi()
-      .createMenu('💪 MS3')
-      .addItem('▶️ Activate 💪MS3 Menus', 'fActivateCodex')
+      .createMenu('💪 FlexMoxie')
+      .addItem('▶️ Activate 💪FlexMoxie Menus', 'fActivateCodex')
       .addToUi();
   }
 } // End function onOpen
