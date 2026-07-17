@@ -117,7 +117,7 @@ function fGetOrCreateFolder(folderName, parentFolder = null) {
    Assumptions: The filesToSync object is correctly passed as a parameter.
    Notes: Uses PropertiesService to ensure files are only copied once. Skips Ver and Codex.
    @param {string} version - The version number to sync files for (e.g., '3').
-   @param {GoogleAppsScript.Drive.Folder} parentFolder - The main "MetaScape Flex" folder.
+   @param {GoogleAppsScript.Drive.Folder} parentFolder - The main "🫀FlexMoxie" folder.
    @param {object} filesToSync - The object containing the file info for the specified version.
    @returns {void}
 */

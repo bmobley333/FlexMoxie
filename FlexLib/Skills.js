@@ -706,7 +706,7 @@ function fVerifySkillSetLists() {
     }
 
     let correctedCellCount = 0;
-    const emojiMap = { '💪': 'Might', '🏃': 'Motion', '👁️': 'Mind', '✨': 'Magic' };
+    const emojiMap = { '💪': 'Might', '🏃': 'Motion', '👁️': 'Mind', '✨': 'Magic', '🫀': 'Moxie' };
     const validEmojis = Object.keys(emojiMap);
 
     // Loop through all data rows
@@ -771,7 +771,7 @@ function fVerifyIndividualSkills() {
     }
 
     let correctedCount = 0;
-    const emojiMap = { '💪': 'Might', '🏃': 'Motion', '👁️': 'Mind', '✨': 'Magic' };
+    const emojiMap = { '💪': 'Might', '🏃': 'Motion', '👁️': 'Mind', '✨': 'Magic', '🫀': 'Moxie' };
     const validEmojis = Object.keys(emojiMap);
 
     // Loop through all data rows

@@ -84,7 +84,7 @@ function fGetSkillsFromString(skillString) {
    @returns {void}
 */
 function fUpdateCharacterSkills(sheet, skills, gameColTags, mode) {
-  const emojiMap = { '💪': 'mightskills', '🏃': 'motionskills', '👁️': 'mindskills', '✨': 'magicskills' };
+  const emojiMap = { '💪': 'mightskills', '🏃': 'motionskills', '👁️': 'mindskills', '✨': 'magicskills', '🫀': 'moxieskills' };
   const validEmojis = Object.keys(emojiMap);
   const individualSkillsCol = gameColTags.individualskills + 1;
 
