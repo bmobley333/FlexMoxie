@@ -49,11 +49,22 @@ function fApplyVisualIsolation(sheet) {
     .build();
 
   const currentRules = sheet.getConditionalFormatRules();
-  
-  // Prevent duplicate rule accumulation
-  const hasEmptyRule = currentRules.some(r => r.getFormula() === '' && r.getBackground() === '#ffd2d2');
-  if (!hasEmptyRule) {
-    currentRules.push(emptyRule);
-    sheet.setConditionalFormatRules(currentRules);
+  const newRules = [];
+
+  for (let i = 0; i < currentRules.length; i++) {
+    const r = currentRules[i];
+    const cond = r.getBooleanCondition();
+    if (cond) {
+      const criteria = cond.getCriteriaType();
+      const bg = cond.getBackground();
+      // Skip/remove our existing empty-cell warning rule to prevent accumulation
+      if (criteria === SpreadsheetApp.BooleanCriteria.CELL_EMPTY && bg && bg.toLowerCase() === '#ffd2d2') {
+        continue;
+      }
+    }
+    newRules.push(r);
   }
+
+  newRules.push(emptyRule);
+  sheet.setConditionalFormatRules(newRules);
 } // End function fApplyVisualIsolation
