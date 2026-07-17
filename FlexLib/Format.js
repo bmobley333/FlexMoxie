@@ -66,14 +66,14 @@ function fApplyVisualIsolation(sheet) {
   colARange.setFontStyle('italic');
   colARange.setHorizontalAlignment('left');
 
-  // 5. Style Metadata Row(s) from header row up (overwriting col A in the header zone)
+  // 5. Style Row 1 (Column tags)
   // Text format: bold, centered, Nord slate background, light gray text
-  const headerRange = sheet.getRange(1, 1, rowsToFreeze, maxCols);
-  headerRange.setBackground('#3B4252'); // Nord Slate Grey
-  headerRange.setFontColor('#ECEFF4'); // Nord Snow White
-  headerRange.setFontWeight('bold');
-  headerRange.setFontStyle('normal'); // Reset italic for header row
-  headerRange.setHorizontalAlignment('center');
+  const row1Range = sheet.getRange(1, 1, 1, maxCols);
+  row1Range.setBackground('#3B4252'); // Nord Slate Grey
+  row1Range.setFontColor('#ECEFF4'); // Nord Snow White
+  row1Range.setFontWeight('bold');
+  row1Range.setFontStyle('normal'); // Reset italic for header row
+  row1Range.setHorizontalAlignment('center');
 
   // 6. Add Conditional Formatting to highlight empty cells in Column A and Row 1
   const emptyRule = SpreadsheetApp.newConditionalFormatRule()
