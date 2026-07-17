@@ -1,4 +1,4 @@
-/* global fShowMessage, fVerifyActiveSheetTags, fApplyVisualIsolation, SpreadsheetApp, fActivateSheetByName */
+/* global fShowMessage, fVerifyActiveSheetTags, fApplyVisualIsolation, SpreadsheetApp, fActivateSheetByName, fNormalizeTags, fShowToast, fEndToast */
 /* exported run */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +52,23 @@ function run(command, sheetToActivate) {
       AddNewCustomSource: fAddNewCustomSource,
       InitialSetup: fInitialSetup,
       TagVerification: fVerifyActiveSheetTags,
-      ApplyVisualIsolation: () => fApplyVisualIsolation(SpreadsheetApp.getActiveSheet()),
+      ApplyVisualIsolation: () => {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const sheets = ss.getSheets();
+        let formattedCount = 0;
+
+        fShowToast('⏳ Scanning and formatting tabs...', 'Visual Isolation');
+
+        sheets.forEach(sheet => {
+          if (fIsCoordinateSheet(sheet)) {
+            fApplyVisualIsolation(sheet);
+            formattedCount++;
+          }
+        });
+
+        fEndToast();
+        fShowMessage('✅ Success', `Successfully formatted ${formattedCount} tagged sheets in "${ss.getName()}". (Skipped ${sheets.length - formattedCount} non-metadata sheets).`);
+      },
       ToggleVisibility: fToggleDesignerVisibility,
       TrimSheet: fTrimSheet,
       Test: fTestIdManagement,
@@ -82,3 +98,35 @@ function run(command, sheetToActivate) {
     fShowMessage('❌ Error', e.message);
   }
 } // End function run
+
+/* function fIsCoordinateSheet
+   Purpose: Qualifies if a sheet tab uses the coordinate tag system.
+   Checks Cell A1 note for "Tags: True" or Column A for the "Header" tag.
+   Assumptions: None.
+   @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The sheet object to check.
+   @returns {boolean} True if the sheet qualifies.
+*/
+function fIsCoordinateSheet(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow === 0) return false;
+
+  // 1. Check A1 Note for "Tags: True"
+  const a1Note = sheet.getRange(1, 1).getNote();
+  if (a1Note && /tags\s*:\s*true/i.test(a1Note)) {
+    return true;
+  }
+
+  // 2. Fallback: Scan Column A for the "Header" tag
+  const colAValues = sheet.getRange(1, 1, lastRow, 1).getValues();
+  for (let r = 0; r < colAValues.length; r++) {
+    const cellValue = colAValues[r][0];
+    if (cellValue && typeof cellValue === 'string') {
+      const normalizedTags = fNormalizeTags(cellValue);
+      if (normalizedTags.includes('header')) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+} // End function fIsCoordinateSheet
