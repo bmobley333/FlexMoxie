@@ -11,7 +11,8 @@ foreach ($project in $projects) {
     Set-Location -Path $project.FullName  # Go into the project directory
 
     Write-Host ">>> FORCE Pushing $($project.Name)..."
-    clasp push --force
+    npx @google/clasp push --force
+
 
     Write-Host "" # Add a blank line for readability
     Set-Location -Path ".."               # Go back to the root directory
