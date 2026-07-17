@@ -51,10 +51,14 @@ function fGetCodexSpreadsheet() {
   const activeSS = SpreadsheetApp.getActiveSpreadsheet();
   const dataSheet = activeSS.getSheetByName('Data');
 
-  // 2. If no <Data> sheet, assume we ARE the Codex.
+  // 2. If no <Data> sheet, check if we are the Codex (has MyVersions)
   if (!dataSheet) {
-    g.codexSS = activeSS;
-    return g.codexSS;
+    if (activeSS.getSheetByName('MyVersions')) {
+      g.codexSS = activeSS;
+      return g.codexSS;
+    } else {
+      throw new Error(`This spreadsheet is not connected to a Player's Codex (missing "Data" sheet and is not the Codex). Please ensure a "Data" sheet exists in this character sheet with a valid "CodexID" in Column A.`);
+    }
   }
 
   // 3. Try to find the Codex ID in the <Data> sheet using the correct gatekeeper.
@@ -71,11 +75,14 @@ function fGetCodexSpreadsheet() {
       }
     }
   } catch (e) {
-    console.error(`Could not read Codex ID from <Data> sheet. Assuming active sheet is the Codex. Error: ${e}`);
+    console.error(`Could not read Codex ID from <Data> sheet. Error: ${e}`);
   }
 
-  // 4. If all else fails, assume we ARE the Codex.
-  g.codexSS = activeSS;
-  return g.codexSS;
-
+  // 4. If all else fails, check if we are the Codex
+  if (activeSS.getSheetByName('MyVersions')) {
+    g.codexSS = activeSS;
+    return g.codexSS;
+  } else {
+    throw new Error(`Could not retrieve a valid "CodexID" from the "Data" sheet, and this sheet is not the Player's Codex.`);
+  }
 } // End function fGetCodexSpreadsheet
