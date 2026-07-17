@@ -29,6 +29,9 @@ function fBuildTagMaps(ssKey, sheetName) {
   for (let c = 0; c < colTags.length; c++) {
     const normalizedTags = fNormalizeTags(colTags[c]);
     normalizedTags.forEach(tag => {
+      if (colTagMap[tag] !== undefined) {
+        throw new Error(`Critical Schema Error: Duplicate column tag "${tag}" found in Row 1, Column ${c + 1} and Column ${colTagMap[tag] + 1} of sheet "${sheetName}".`);
+      }
       colTagMap[tag] = c;
     });
   }
@@ -39,6 +42,9 @@ function fBuildTagMaps(ssKey, sheetName) {
     if (data[r] && typeof data[r][0] !== 'undefined') {
       const normalizedTags = fNormalizeTags(data[r][0]);
       normalizedTags.forEach(tag => {
+        if (rowTagMap[tag] !== undefined) {
+          throw new Error(`Critical Schema Error: Duplicate row tag "${tag}" found in Column A, Row ${r + 1} and Row ${rowTagMap[tag] + 1} of sheet "${sheetName}".`);
+        }
         rowTagMap[tag] = r;
       });
     }

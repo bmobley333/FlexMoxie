@@ -531,3 +531,13 @@ function fMenuFilterSkillSets() {
 function fMenuClearSkillSetChoices() {
   FlexLib.run('ClearSkillSetFilters');
 } // End function fMenuClearSkillSetChoices
+
+/* function fMenuApplyVisualIsolation
+   Purpose: Local trigger for the "Isolate & Format Metadata" menu item.
+   Assumptions: None.
+   Notes: Acts as a pass-through to the central dispatcher in FlexLib.
+   @returns {void}
+*/
+function fMenuApplyVisualIsolation() {
+  FlexLib.run('ApplyVisualIsolation');
+} // End function fMenuApplyVisualIsolation

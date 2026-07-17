@@ -156,3 +156,13 @@ function fMenuDeleteSelectedSkillSets() {
   FlexLib.run('DeleteSelectedSkillSets', 'SkillSets');
 } // End function fMenuDeleteSelectedSkillSets
 
+/* function fMenuApplyVisualIsolation
+   Purpose: Local trigger for the "Isolate & Format Metadata" menu item.
+   Assumptions: None.
+   Notes: Acts as a pass-through to the central dispatcher in FlexLib.
+   @returns {void}
+*/
+function fMenuApplyVisualIsolation() {
+  FlexLib.run('ApplyVisualIsolation');
+} // End function fMenuApplyVisualIsolation
+

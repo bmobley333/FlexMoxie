@@ -1,4 +1,4 @@
-/* global fShowMessage, fVerifyActiveSheetTags */
+/* global fShowMessage, fVerifyActiveSheetTags, fApplyVisualIsolation, SpreadsheetApp, fActivateSheetByName */
 /* exported run */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +52,7 @@ function run(command, sheetToActivate) {
       AddNewCustomSource: fAddNewCustomSource,
       InitialSetup: fInitialSetup,
       TagVerification: fVerifyActiveSheetTags,
+      ApplyVisualIsolation: () => fApplyVisualIsolation(SpreadsheetApp.getActiveSheet()),
       ToggleVisibility: fToggleDesignerVisibility,
       TrimSheet: fTrimSheet,
       Test: fTestIdManagement,

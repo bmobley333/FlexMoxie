@@ -1,4 +1,4 @@
-/* global fShowMessage, DriveApp, SpreadsheetApp, g, fNormalizeTags, fLoadSheetToArray, fBuildTagMaps, MimeType, fEmbedCodexId */
+/* global fShowMessage, DriveApp, SpreadsheetApp, g, fNormalizeTags, fLoadSheetToArray, fBuildTagMaps, MimeType, fEmbedCodexId, fGetColIndex, fGetRowIndex, fApplyVisualIsolation */
 /* exported fLogLocalFileCopy */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,7 +28,7 @@ function fInitialSetup() {
   const dataSheet = codexSS.getSheetByName('Data');
   if (dataSheet) {
     const { rowTags, colTags } = fGetSheetData('Codex', 'Data', codexSS, true);
-    const dataCol = colTags.data;
+    const dataCol = fGetColIndex(colTags, 'data');
 
     const folderIdMap = {
       flexfolderid: parentFolder.getId(),
@@ -38,7 +38,7 @@ function fInitialSetup() {
     };
 
     for (const rowTag in folderIdMap) {
-      const rowIndex = rowTags[rowTag];
+      const rowIndex = fGetRowIndex(rowTags, rowTag);
       if (rowIndex !== undefined && dataCol !== undefined) {
         dataSheet.getRange(rowIndex + 1, dataCol + 1).setValue(folderIdMap[rowTag]);
       }
@@ -66,7 +66,13 @@ function fInitialSetup() {
   // 4. Sync all files and log them to the local <MyVersions> sheet
   fSyncAllVersionFiles(sourceData, masterCopiesFolder);
 
-  // 5. The setup is now complete. Custom abilities are created on-demand by the user.
+  // 5. Apply visual isolation to all sheets in the newly configured Player's Codex
+  fShowToast('Applying visual isolation and formatting rules...', '⚙️ Setup');
+  codexSS.getSheets().forEach(sheet => {
+    fApplyVisualIsolation(sheet);
+  });
+
+  // 6. The setup is now complete. Custom abilities are created on-demand by the user.
   fEndToast();
   const successMessage = 'Your Player\'s Codex is now ready to use.\n\nPlease bookmark this Player\'s Codex file (and you can also find it in your Google Drive under the "🫀FlexMoxie" folder).';
   fShowMessage('✅ Setup Complete!', successMessage);

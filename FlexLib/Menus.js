@@ -160,6 +160,7 @@ function fCreateDesignerMenu(context = '') {
 
 
   menu.addItem('Tag Verification', 'fMenuTagVerification');
+  menu.addItem('Isolate & Format Metadata', 'fMenuApplyVisualIsolation');
   menu.addItem('Trim Empty Rows/Cols', 'fMenuTrimSheet');
   menu.addItem('Show/Hide All', 'fMenuToggleVisibility');
   menu.addSeparator();

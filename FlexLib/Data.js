@@ -1,5 +1,5 @@
 /* global g, fLoadSheetToArray, fBuildTagMaps, SpreadsheetApp */
-/* exported fGetSheetData */
+/* exported fGetSheetData, fGetColIndex, fGetRowIndex */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // End - n/a
@@ -44,3 +44,44 @@ function fGetSheetData(ssKey, sheetName, ss = SpreadsheetApp.getActiveSpreadshee
   // 3. Return the newly loaded data.
   return g[ssKey][sheetName];
 } // End function fGetSheetData
+
+
+/* function fGetColIndex
+   Purpose: Safe getter to retrieve a column index from colTags with validation.
+   Assumptions: colTags is a map of normalized column tags.
+   Notes: Throws a descriptive error if the tag is missing and isRequired is true.
+   @param {object} colTags - The column tag map.
+   @param {string} tag - The tag to search for.
+   @param {boolean} [isRequired=true] - Whether to throw an error if the tag is missing.
+   @returns {number|undefined} The 0-based column index, or undefined if missing and not required.
+*/
+function fGetColIndex(colTags, tag, isRequired = true) {
+  const index = colTags[tag];
+  if (index === undefined) {
+    if (isRequired) {
+      throw new Error(`Critical Schema Error: Missing required column tag "${tag}" in the spreadsheet layout.`);
+    }
+    return undefined;
+  }
+  return index;
+} // End function fGetColIndex
+
+/* function fGetRowIndex
+   Purpose: Safe getter to retrieve a row index from rowTags with validation.
+   Assumptions: rowTags is a map of normalized row tags.
+   Notes: Throws a descriptive error if the tag is missing and isRequired is true.
+   @param {object} rowTags - The row tag map.
+   @param {string} tag - The tag to search for.
+   @param {boolean} [isRequired=true] - Whether to throw an error if the tag is missing.
+   @returns {number|undefined} The 0-based row index, or undefined if missing and not required.
+*/
+function fGetRowIndex(rowTags, tag, isRequired = true) {
+  const index = rowTags[tag];
+  if (index === undefined) {
+    if (isRequired) {
+      throw new Error(`Critical Schema Error: Missing required row tag "${tag}" in the spreadsheet layout.`);
+    }
+    return undefined;
+  }
+  return index;
+} // End function fGetRowIndex
