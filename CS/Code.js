@@ -77,6 +77,7 @@ function fGetSkillsFromString(skillString) {
    Purpose: Adds or removes a list of skills from the appropriate sections on the <Game> sheet.
    Assumptions: None.
    Notes: A helper for fProcessSkillSetChange that contains the core placement and removal logic.
+          Optimized to read and write all skill cells in single bulk range operations to prevent latency.
    @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The <Game> sheet object.
    @param {string[]} skills - An array of skill strings to process.
    @param {object} gameColTags - The column tags for the <Game> sheet.
@@ -87,6 +88,26 @@ function fUpdateCharacterSkills(sheet, skills, gameColTags, mode) {
   const emojiMap = { '💪': 'mightskills', '🏃': 'motionskills', '👁️': 'mindskills', '✨': 'magicskills', '🫀': 'moxieskills' };
   const validEmojis = Object.keys(emojiMap);
   const individualSkillsCol = gameColTags.individualskills + 1;
+
+  // Get the row tags from the library
+  const { rowTags: gameRowTags } = FlexLib.fGetSheetData('CS', 'Game');
+
+  // Determine the bounding row range for all attribute skill rows to minimize RPC calls
+  const rowIndices = validEmojis.map(emoji => gameRowTags[emojiMap[emoji]] + 1);
+  const minRow = Math.min(...rowIndices);
+  const maxRow = Math.max(...rowIndices) + 1; // Include the +1 row (second skills line)
+  const numRows = maxRow - minRow + 1;
+
+  // Bulk read all skill cells in a single RPC call
+  const skillsData = sheet.getRange(minRow, individualSkillsCol, numRows, 1).getValues();
+
+  const fGetCachedValue = (rowIndex) => {
+    return skillsData[rowIndex - minRow][0] || '';
+  };
+
+  const fSetCachedValue = (rowIndex, value) => {
+    skillsData[rowIndex - minRow][0] = value;
+  };
 
   skills.forEach(skillWithEmoji => {
     let detectedEmoji = null;
@@ -103,55 +124,51 @@ function fUpdateCharacterSkills(sheet, skills, gameColTags, mode) {
     }
 
     const targetRowTag = emojiMap[detectedEmoji];
-    const { rowTags: gameRowTags } = FlexLib.fGetSheetData('CS', 'Game');
     const baseRowIndex = gameRowTags[targetRowTag] + 1;
-
-    // The full skill string (e.g., "Infrared👁️") is now the identifier.
     const skillIdentifier = skillWithEmoji;
 
     if (mode === 'ADD') {
-      const row1Range = sheet.getRange(baseRowIndex, individualSkillsCol);
-      const row2Range = sheet.getRange(baseRowIndex + 1, individualSkillsCol);
-      const row1Text = row1Range.getValue();
-      const row2Text = row2Range.getValue();
+      const row1Text = fGetCachedValue(baseRowIndex);
+      const row2Text = fGetCachedValue(baseRowIndex + 1);
 
       // Find if the skill already exists in either row to increment its count.
-      let foundInRow = null;
+      let foundRowIndex = null;
       let existingSkills = [];
+      let skillIndex = -1;
 
       // Check Row 1
       existingSkills = row1Text ? row1Text.split(',').map(s => s.trim()) : [];
-      let skillIndex = existingSkills.findIndex(s => s.endsWith(skillIdentifier));
+      skillIndex = existingSkills.findIndex(s => s.endsWith(skillIdentifier));
       if (skillIndex !== -1) {
-        foundInRow = { range: row1Range, skills: existingSkills, index: skillIndex };
+        foundRowIndex = baseRowIndex;
       } else {
         // Check Row 2
         existingSkills = row2Text ? row2Text.split(',').map(s => s.trim()) : [];
         skillIndex = existingSkills.findIndex(s => s.endsWith(skillIdentifier));
         if (skillIndex !== -1) {
-          foundInRow = { range: row2Range, skills: existingSkills, index: skillIndex };
+          foundRowIndex = baseRowIndex + 1;
         }
       }
 
-      if (foundInRow) {
+      if (foundRowIndex !== null) {
         // --- Skill exists, increment the count ---
-        const existingSkill = foundInRow.skills[foundInRow.index];
+        const existingSkill = existingSkills[skillIndex];
         const parts = existingSkill.split('_');
         const count = parts.length > 1 ? parseInt(parts[0], 10) + 1 : 2;
-        foundInRow.skills[foundInRow.index] = `${count}_${skillIdentifier}`;
-        foundInRow.range.setValue(foundInRow.skills.join(', '));
+        existingSkills[skillIndex] = `${count}_${skillIdentifier}`;
+        fSetCachedValue(foundRowIndex, existingSkills.join(', '));
       } else {
         // --- Skill is new, add it to the shorter row ---
-        const targetRange = row1Text.length <= row2Text.length ? row1Range : row2Range;
-        const currentText = targetRange.getValue();
+        const targetRowIndex = row1Text.length <= row2Text.length ? baseRowIndex : baseRowIndex + 1;
+        const currentText = fGetCachedValue(targetRowIndex);
         const newText = currentText ? `${currentText}, ${skillIdentifier}` : skillIdentifier;
-        targetRange.setValue(newText);
+        fSetCachedValue(targetRowIndex, newText);
       }
     } else if (mode === 'REMOVE') {
       // --- Decrement or remove the skill ---
       for (let i = 0; i < 2; i++) {
-        const range = sheet.getRange(baseRowIndex + i, individualSkillsCol);
-        const text = range.getValue();
+        const targetRowIndex = baseRowIndex + i;
+        const text = fGetCachedValue(targetRowIndex);
         if (!text) continue;
 
         const existingSkills = text.split(',').map(s => s.trim());
@@ -170,18 +187,22 @@ function fUpdateCharacterSkills(sheet, skills, gameColTags, mode) {
           } else {
             existingSkills.splice(skillIndex, 1);
           }
-          range.setValue(existingSkills.join(', '));
+          fSetCachedValue(targetRowIndex, existingSkills.join(', '));
           break; // Exit after processing
         }
       }
     }
   });
+
+  // Bulk write the modified values back in a single RPC call
+  sheet.getRange(minRow, individualSkillsCol, numRows, 1).setValues(skillsData);
 } // End function fUpdateCharacterSkills
 
 /* function onEdit
    Purpose: A simple trigger that auto-populates details from a high-speed session cache when an item is selected from a dropdown.
    Assumptions: The appropriate DataCache sheet exists. The <Game> sheet is tagged correctly.
    Notes: This is the optimized auto-formatter, built on fGetSheetData for maximum performance and robust, explicit tag matching.
+          Refactored to write contiguous horizontal rows in a single batch call (Approach B) to avoid RPC loops.
    @param {GoogleAppsScript.Events.SheetsOnEdit} e - The event object passed by the trigger.
    @returns {void}
 */
@@ -254,34 +275,62 @@ function onEdit(e) {
         const mName = isDropdown1 ? 'magicitemname1' : 'magicitemname2';
         const mEffect = isDropdown1 ? 'magicitemeffect1' : 'magicitemeffect2';
 
+        const targetCols = [pUsage, pAction, pName, pEffect, mUsage, mAction, mName, mEffect]
+          .map(tag => gameColTags[tag])
+          .filter(col => col !== undefined);
+
+        if (targetCols.length === 0) break;
+
+        const minCol = Math.min(...targetCols);
+        const maxCol = Math.max(...targetCols);
+        const numCols = maxCol - minCol + 1;
+        const editedRow = e.range.getRow();
+        const rowRange = sheet.getRange(editedRow, minCol + 1, 1, numCols);
+        const rowValues = rowRange.getValues();
+
+        // Clear all relevant power and item cells in the horizontal array chunk
         [pUsage, pAction, pName, pEffect, mUsage, mAction, mName, mEffect].forEach(tag => {
           const col = gameColTags[tag];
-          if (col !== undefined) sheet.getRange(e.range.getRow(), col + 1).clearContent();
+          if (col !== undefined) {
+            rowValues[0][col - minCol] = '';
+          }
         });
 
+        // Set the active selection's details in-memory
         if (data) {
           const usageCol = gameColTags[isPower ? pUsage : mUsage];
           const actionCol = gameColTags[isPower ? pAction : mAction];
           const nameCol = gameColTags[isPower ? pName : mName];
           const effectCol = gameColTags[isPower ? pEffect : mEffect];
 
-          if (usageCol !== undefined) sheet.getRange(e.range.getRow(), usageCol + 1).setValue(data.usage);
-          if (actionCol !== undefined) sheet.getRange(e.range.getRow(), actionCol + 1).setValue(data.action);
-          if (nameCol !== undefined) sheet.getRange(e.range.getRow(), nameCol + 1).setValue(data.name);
-          if (effectCol !== undefined) sheet.getRange(e.range.getRow(), effectCol + 1).setValue(data.effect);
+          if (usageCol !== undefined) rowValues[0][usageCol - minCol] = data.usage || '';
+          if (actionCol !== undefined) rowValues[0][actionCol - minCol] = data.action || '';
+          if (nameCol !== undefined) rowValues[0][nameCol - minCol] = data.name || '';
+          if (effectCol !== undefined) rowValues[0][effectCol - minCol] = data.effect || '';
         }
+
+        // Bulk write the entire row segment back in a single RPC write
+        rowRange.setValues(rowValues);
         break;
       }
 
       case 'skillsetdropdown': {
         const nameCol = gameColTags.skillsetname;
         const effectCol = gameColTags.skillseteffect;
+        const targetCols = [nameCol, effectCol].filter(col => col !== undefined);
+        if (targetCols.length === 0) break;
+
+        const minCol = Math.min(...targetCols);
+        const maxCol = Math.max(...targetCols);
+        const numCols = maxCol - minCol + 1;
         const editedRow = e.range.getRow();
+        const rowRange = sheet.getRange(editedRow, minCol + 1, 1, numCols);
+        const rowValues = rowRange.getValues();
 
         // --- REMOVAL LOGIC ---
-        // Must run first, using the skill list currently on the sheet before it gets cleared.
-        if (e.oldValue) {
-          const effectString = sheet.getRange(editedRow, effectCol + 1).getValue();
+        // Must run first, using the skill list currently in memory before it gets cleared.
+        if (e.oldValue && effectCol !== undefined) {
+          const effectString = rowValues[0][effectCol - minCol];
           const skillsToRemove = fGetSkillsFromString(effectString);
           if (skillsToRemove.length > 0) {
             FlexLib.fShowToast('⏳ Removing old skill set...', 'Skill Sets');
@@ -291,13 +340,13 @@ function onEdit(e) {
 
         // --- CLEARING / ADDITION LOGIC ---
         if (!e.value) { // Cell was cleared
-          if (nameCol !== undefined) sheet.getRange(editedRow, nameCol + 1).clearContent();
-          if (effectCol !== undefined) sheet.getRange(editedRow, effectCol + 1).clearContent();
+          if (nameCol !== undefined) rowValues[0][nameCol - minCol] = '';
+          if (effectCol !== undefined) rowValues[0][effectCol - minCol] = '';
         } else { // New value was added
           const data = skillSetMap.get(e.value);
           if (data) {
-            if (nameCol !== undefined) sheet.getRange(editedRow, nameCol + 1).setValue(data.name);
-            if (effectCol !== undefined) sheet.getRange(editedRow, effectCol + 1).setValue(data.effect);
+            if (nameCol !== undefined) rowValues[0][nameCol - minCol] = data.name || '';
+            if (effectCol !== undefined) rowValues[0][effectCol - minCol] = data.effect || '';
             const skillsToAdd = fGetSkillsFromString(data.effect);
             if (skillsToAdd.length > 0) {
               FlexLib.fShowToast('⏳ Adding new skill set...', 'Skill Sets');
@@ -305,7 +354,10 @@ function onEdit(e) {
             }
           }
         }
-        
+
+        // Bulk write the skillset changes back
+        rowRange.setValues(rowValues);
+
         if (e.oldValue || e.value) FlexLib.fEndToast();
         break;
       }

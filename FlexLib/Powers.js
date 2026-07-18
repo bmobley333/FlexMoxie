@@ -174,21 +174,13 @@ function fUpdatePowerTablesList(isSilent = false) {
 
     destSheet.getRange(firstDataRow, 2, newRowCount, dataToWrite[0].length).setValues(dataToWrite);
 
-    // --- NEW: Re-apply checked state ---
+    // --- Batch checkbox: Insert all checkboxes at once, then set check states in a single bulk write ---
     const newIsActiveCol = destColTags.isactive + 1;
-    const newTableNameCol = destColTags.tablename;
-    const newData = destSheet.getRange(firstDataRow, newTableNameCol + 1, newRowCount, 1).getValues();
-
-    newData.forEach((row, index) => {
-      const tableName = row[0];
-      const range = destSheet.getRange(firstDataRow + index, newIsActiveCol);
-      if (previouslyChecked.has(tableName)) {
-        range.check();
-      } else {
-        range.insertCheckboxes(); // Ensure even unchecked rows get a box
-      }
-    });
-    // --- END NEW ---
+    const checkboxRange = destSheet.getRange(firstDataRow, newIsActiveCol, newRowCount, 1);
+    checkboxRange.insertCheckboxes();
+    const checkStates = allPowerTables.map(item => [previouslyChecked.has(item.tableName)]);
+    checkboxRange.setValues(checkStates);
+    // --- END Batch checkbox ---
   }
 
   if (isSilent) {

@@ -27,7 +27,7 @@ function fInitialSetup() {
   const codexSS = SpreadsheetApp.getActiveSpreadsheet();
   const dataSheet = codexSS.getSheetByName('Data');
   if (dataSheet) {
-    const { rowTags, colTags } = fGetSheetData('Codex', 'Data', codexSS, true);
+    const { arr, rowTags, colTags } = fGetSheetData('Codex', 'Data', codexSS, true);
     const dataCol = fGetColIndex(colTags, 'data');
 
     const folderIdMap = {
@@ -40,9 +40,12 @@ function fInitialSetup() {
     for (const rowTag in folderIdMap) {
       const rowIndex = fGetRowIndex(rowTags, rowTag);
       if (rowIndex !== undefined && dataCol !== undefined) {
-        dataSheet.getRange(rowIndex + 1, dataCol + 1).setValue(folderIdMap[rowTag]);
+        arr[rowIndex][dataCol] = folderIdMap[rowTag];
       }
     }
+
+    // Bulk write the folder IDs back in a single RPC write
+    dataSheet.getRange(1, 1, arr.length, arr[0].length).setValues(arr);
   }
 
   // 2. Move and Rename this Codex

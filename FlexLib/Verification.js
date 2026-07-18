@@ -6,6 +6,25 @@
 // Start - Sheet Verification Utilities
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/* function toA1_
+   Purpose: Pure JavaScript helper to compute A1 notation from 1-based row and column indices.
+   Assumptions: Row and col are 1-based positive integers.
+   Notes: Eliminates the need for sheet.getRange().getA1Notation() RPC calls inside loops.
+   @param {number} row - The 1-based row number.
+   @param {number} col - The 1-based column number.
+   @returns {string} The A1 notation string (e.g., "A1", "Z5", "AA10").
+*/
+function toA1_(row, col) {
+  let letter = '';
+  let c = col;
+  while (c > 0) {
+    c--;
+    letter = String.fromCharCode(65 + (c % 26)) + letter;
+    c = Math.floor(c / 26);
+  }
+  return letter + row;
+}
+
 /* function fVerifyActiveSheetTags
    Purpose: Verifies unique column and row tags on the currently active sheet by leveraging fGetSheetData.
    Assumptions: The function is triggered by a user on an active sheet.
@@ -28,12 +47,12 @@ function fVerifyActiveSheetTags() {
       const normalizedTags = fNormalizeTags(colTagRow[c]);
       for (const tag of normalizedTags) {
         if (seenColTags[tag]) {
-          const message = `Duplicate column tag found: "${tag}"\n\nOriginal in cell: ${seenColTags[tag]}\nDuplicate in cell: ${sheet.getRange(1, c + 1).getA1Notation()}`;
+          const message = `Duplicate column tag found: "${tag}"\n\nOriginal in cell: ${seenColTags[tag]}\nDuplicate in cell: ${toA1_(1, c + 1)}`;
           fEndToast();
           fShowMessage('⚠️ Tag Verification Failed', message);
           return;
         }
-        seenColTags[tag] = sheet.getRange(1, c + 1).getA1Notation();
+        seenColTags[tag] = toA1_(1, c + 1);
       }
     }
 
@@ -45,12 +64,12 @@ function fVerifyActiveSheetTags() {
         const normalizedTags = fNormalizeTags(arr[r][0]);
         for (const tag of normalizedTags) {
           if (seenRowTags[tag]) {
-            const message = `Duplicate row tag found: "${tag}"\n\nOriginal in cell: ${seenRowTags[tag]}\nDuplicate in cell: ${sheet.getRange(r + 1, 1).getA1Notation()}`;
+            const message = `Duplicate row tag found: "${tag}"\n\nOriginal in cell: ${seenRowTags[tag]}\nDuplicate in cell: ${toA1_(r + 1, 1)}`;
             fEndToast();
             fShowMessage('⚠️ Tag Verification Failed', message);
             return;
           }
-          seenRowTags[tag] = sheet.getRange(r + 1, 1).getA1Notation();
+          seenRowTags[tag] = toA1_(r + 1, 1);
         }
       }
     }

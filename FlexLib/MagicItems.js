@@ -544,21 +544,13 @@ function fUpdateMagicItemChoices(isSilent = false) {
     const dataToWrite = allMagicItemTables.map(item => [item.tableName, item.source]);
     destSheet.getRange(firstDataRow, destColTags.tablename + 1, newRowCount, 2).setValues(dataToWrite);
 
-    // --- NEW: Re-apply checked state ---
+    // --- Batch checkbox: Insert all checkboxes at once, then set check states in a single bulk write ---
     const newIsActiveCol = destColTags.isactive + 1;
-    const newTableNameCol = destColTags.tablename;
-    const newData = destSheet.getRange(firstDataRow, newTableNameCol + 1, newRowCount, 1).getValues();
-
-    newData.forEach((row, index) => {
-      const tableName = row[0];
-      const range = destSheet.getRange(firstDataRow + index, newIsActiveCol);
-      if (previouslyChecked.has(tableName)) {
-        range.check();
-      } else {
-        range.insertCheckboxes();
-      }
-    });
-    // --- END NEW ---
+    const checkboxRange = destSheet.getRange(firstDataRow, newIsActiveCol, newRowCount, 1);
+    checkboxRange.insertCheckboxes();
+    const checkStates = allMagicItemTables.map(item => [previouslyChecked.has(item.tableName)]);
+    checkboxRange.setValues(checkStates);
+    // --- END Batch checkbox ---
   }
 
   if (isSilent) {

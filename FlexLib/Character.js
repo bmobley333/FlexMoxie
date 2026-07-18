@@ -27,11 +27,16 @@ function fCheckCoreSources(sheetName) {
   const sourceCol = colTags.source;
   if (isActiveCol === undefined || sourceCol === undefined) return;
 
-  // Find all rows where the source is 'DB' and check their 'isactive' box
-  for (let r = headerRow + 1; r < arr.length; r++) {
-    if (arr[r][sourceCol] === 'DB') {
-      sheet.getRange(r + 1, isActiveCol + 1).check();
+  // Batch: Build boolean check-state array in memory, then write in a single bulk call
+  const dataRowCount = arr.length - (headerRow + 1);
+  if (dataRowCount > 0) {
+    const checkboxRange = sheet.getRange(headerRow + 2, isActiveCol + 1, dataRowCount, 1);
+    checkboxRange.insertCheckboxes();
+    const checkStates = [];
+    for (let r = headerRow + 1; r < arr.length; r++) {
+      checkStates.push([arr[r][sourceCol] === 'DB']);
     }
+    checkboxRange.setValues(checkStates);
   }
 } // End function fCheckCoreSources
 
@@ -92,12 +97,20 @@ function fUpdateCharacterRulesLinks(version, newRulesId) {
   const rulesLinkText = `v${version} Rules`;
   const newLink = SpreadsheetApp.newRichTextValue().setText(rulesLinkText).setLinkUrl(rulesUrl).build();
 
-  // Loop through all character rows
-  for (let r = headerRow + 1; r < arr.length; r++) {
-    // If the character's version matches, update its rules link
-    if (String(arr[r][versionCol]) === version) {
-      destSheet.getRange(r + 1, rulesCol + 1).setRichTextValue(newLink);
+  // Batch: Read entire rules column, update matching rows in memory, write back in one call
+  const numDataRows = arr.length - (headerRow + 1);
+  if (numDataRows > 0) {
+    const startRow = headerRow + 2;
+    const rulesRange = destSheet.getRange(startRow, rulesCol + 1, numDataRows, 1);
+    const existingRichText = rulesRange.getRichTextValues();
+
+    for (let r = headerRow + 1; r < arr.length; r++) {
+      if (String(arr[r][versionCol]) === version) {
+        existingRichText[r - headerRow - 1][0] = newLink;
+      }
     }
+
+    rulesRange.setRichTextValues(existingRichText);
   }
 } // End function fUpdateCharacterRulesLinks
 

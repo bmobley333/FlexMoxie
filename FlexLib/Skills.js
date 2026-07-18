@@ -311,19 +311,13 @@ function fUpdateSkillSetChoices(isSilent = false) {
     const dataToWrite = allSkillSetTables.map(item => [item.tableName, item.source]);
     destSheet.getRange(firstDataRow, destColTags.tablename + 1, newRowCount, 2).setValues(dataToWrite);
 
+    // --- Batch checkbox: Insert all checkboxes at once, then set check states in a single bulk write ---
     const newIsActiveCol = destColTags.isactive + 1;
-    const newTableNameCol = destColTags.tablename;
-    const newData = destSheet.getRange(firstDataRow, newTableNameCol + 1, newRowCount, 1).getValues();
-
-    newData.forEach((row, index) => {
-      const tableName = row[0];
-      const range = destSheet.getRange(firstDataRow + index, newIsActiveCol);
-      if (previouslyChecked.has(tableName)) {
-        range.check();
-      } else {
-        range.insertCheckboxes();
-      }
-    });
+    const checkboxRange = destSheet.getRange(firstDataRow, newIsActiveCol, newRowCount, 1);
+    checkboxRange.insertCheckboxes();
+    const checkStates = allSkillSetTables.map(item => [previouslyChecked.has(item.tableName)]);
+    checkboxRange.setValues(checkStates);
+    // --- END Batch checkbox ---
   }
 
   if (isSilent) {
@@ -682,6 +676,7 @@ function fBuildSkillSets() {
    Purpose: The master workflow for verifying the skill type emojis within the <SkillSets> sheet.
    Assumptions: Run from a 'Tables' sheet context. The active sheet is <SkillSets>.
    Notes: Iterates through all data rows, splits the comma-separated skill list, and validates each individual skill.
+          Optimized to write all corrected skill lists in a single bulk API operation.
    @returns {void}
 */
 function fVerifySkillSetLists() {
@@ -709,11 +704,16 @@ function fVerifySkillSetLists() {
     const emojiMap = { '💪': 'Might', '🏃': 'Motion', '👁️': 'Mind', '✨': 'Magic', '🫀': 'Moxie' };
     const validEmojis = Object.keys(emojiMap);
 
+    const startRow = headerRow + 2;
+    const totalRows = arr.length - (headerRow + 1);
+    const skillListRange = sheet.getRange(startRow, skillListCol + 1, totalRows, 1);
+    const skillListValues = skillListRange.getValues();
+
     // Loop through all data rows
     for (let r = headerRow + 1; r < arr.length; r++) {
-      const currentRow = r + 1;
+      const idx = r - (headerRow + 1);
       const skillSet = arr[r][skillSetCol];
-      const originalSkillList = arr[r][skillListCol];
+      const originalSkillList = skillListValues[idx][0];
 
       // Check the conditions to process a row
       if (skillSet && originalSkillList && originalSkillList.includes(',')) {
@@ -731,10 +731,15 @@ function fVerifySkillSetLists() {
 
         if (listWasCorrected) {
           const newSkillList = correctedSkills.join(', ');
-          sheet.getRange(currentRow, skillListCol + 1).setValue(newSkillList);
+          skillListValues[idx][0] = newSkillList;
           correctedCellCount++;
         }
       }
+    }
+
+    // Bulk write all corrections in a single RPC write
+    if (correctedCellCount > 0) {
+      skillListRange.setValues(skillListValues);
     }
 
     fEndToast();
@@ -754,6 +759,7 @@ function fVerifySkillSetLists() {
    Purpose: The master workflow for verifying the skill type emoji in the active sheet.
    Assumptions: Run from a 'Tables' sheet context. The active sheet has a 'Header' row tag and a 'skills' column tag.
    Notes: Iterates through all data rows and uses a helper to validate and correct each skill string.
+          Optimized to write all corrected skill strings in a single bulk API operation.
    @returns {void}
 */
 function fVerifyIndividualSkills() {
@@ -774,18 +780,28 @@ function fVerifyIndividualSkills() {
     const emojiMap = { '💪': 'Might', '🏃': 'Motion', '👁️': 'Mind', '✨': 'Magic', '🫀': 'Moxie' };
     const validEmojis = Object.keys(emojiMap);
 
+    const startRow = headerRow + 2;
+    const totalRows = arr.length - (headerRow + 1);
+    const skillsRange = sheet.getRange(startRow, skillsCol + 1, totalRows, 1);
+    const skillsValues = skillsRange.getValues();
+
     // Loop through all data rows
     for (let r = headerRow + 1; r < arr.length; r++) {
-      const currentRow = r + 1;
-      const originalString = arr[r][skillsCol];
+      const idx = r - (headerRow + 1);
+      const originalString = skillsValues[idx][0];
       if (!originalString) continue; // Skip blank cells
 
       const correctedString = fValidateAndCorrectSkillString(originalString, validEmojis, emojiMap);
 
       if (correctedString && correctedString !== originalString) {
-        sheet.getRange(currentRow, skillsCol + 1).setValue(correctedString);
+        skillsValues[idx][0] = correctedString;
         correctedCount++;
       }
+    }
+
+    // Bulk write all corrections in a single RPC write
+    if (correctedCount > 0) {
+      skillsRange.setValues(skillsValues);
     }
 
     fEndToast();

@@ -9,13 +9,13 @@
 const g = {
   // Developer Info
   ADMIN_EMAIL: 'metascapegame@gmail.com',
-  CURRENT_VERSION: '3',
+  CURRENT_VERSION: '1.0',
   // The master source of truth for all game versions
-  MASTER_VER_ID: '1zlSL-B0k3vPen5EEG0-DPZXO9dwes_hB4CdcL9ngolU',
+  MASTER_VER_ID: '1cNpFLiUDWP6VjPwulFfbsimk81NqW7OfnsNQiiuUqcw',
   MASTER_VER_INFO: {
     version: 'N/A',
     ssabbr: 'Ver',
-    ssid: '1zlSL-B0k3vPen5EEG0-DPZXO9dwes_hB4CdcL9ngolU',
+    ssid: '1cNpFLiUDWP6VjPwulFfbsimk81NqW7OfnsNQiiuUqcw',
     ssfullname: 'Versions',
   },
 
